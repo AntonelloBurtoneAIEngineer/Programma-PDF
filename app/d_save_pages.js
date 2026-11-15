@@ -69,7 +69,7 @@ async function buildPdf(){
     } else if (a.type === 'note'){
       const c = g.to(a.x, a.y), col = hex3(a.color || '#ffd84a');
       const annot = doc.context.obj({Type: 'Annot', Subtype: 'Text', Rect: [c.x - 10, c.y - 10, c.x + 10, c.y + 10],
-        Contents: PDFLib.PDFHexString.fromText(a.text || ''), T: PDFLib.PDFHexString.fromText('Lettore PDF'), Name: 'Comment', C: col, F: 28, Open: false});
+        Contents: PDFLib.PDFHexString.fromText(a.text || ''), T: PDFLib.PDFHexString.fromText('Lyonel Burton'), Name: 'Comment', C: col, F: 28, Open: false});
       page.node.addAnnot(doc.context.register(annot));
     } else if (a.type === 'text'){
       const size = a.size, txt = safeText(helv, a.text);
@@ -361,7 +361,7 @@ async function createDemoPdf(){
   const p3 = doc.addPage([595, 842]);
   p3.drawText('Pagina 3 · Strumenti pagina', {x: 60, y: 780, size: 22, font: fb, color: red});
   txt(p3, ['Apri «Pagine» per ruotare, eliminare, duplicare o riordinare le pagine,', 'oppure per unire altri PDF e dividere il documento in più file.'], 730);
-  doc.setTitle('Modulo di esempio'); doc.setAuthor('Lettore PDF');
+  doc.setTitle('Modulo di esempio'); doc.setAuthor('Lyonel Burton');
   return await doc.save();
 }
 $('#wDemo').onclick = async () => { try { await loadBytes(await createDemoPdf(), 'modulo-esempio.pdf'); } catch(e){ toast('Errore: ' + e.message, true); } };

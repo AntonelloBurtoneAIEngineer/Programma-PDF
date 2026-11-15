@@ -41,7 +41,7 @@ const _loadBytes = loadBytes;
 const dirtySig = () => JSON.stringify([S.anns, [...S.touched].map(n => [n, S.fields[n]]), S.bytes ? S.bytes.length : 0]);
 function markClean(){ S.clean = dirtySig(); renderTabs(); updTitle(); }
 const isDirty = () => !!S.doc && S.clean !== undefined && dirtySig() !== S.clean;
-function updTitle(){ if (S.doc) document.title = (isDirty() ? '● ' : '') + S.name + ' – Lettore PDF'; }
+function updTitle(){ if (S.doc) document.title = (isDirty() ? '● ' : '') + S.name + ' – Lyonel Burton'; }
 setInterval(updTitle, 1500);
 function snapTab(){
   const t = TABS.find(x => x.id === ACTIVE); if (!t || !S.doc) return;
@@ -95,7 +95,7 @@ function resetViewer(){
   try { S.doc && S.doc.destroy(); } catch(e){}
   S.doc = null; S.bytes = null; S.n = 0; S.pages = []; S.anns = []; S.hist = []; S.redo = []; S.fields = {}; S.touched = new Set(); S.docUndo = []; S.sel = null;
   $('#pages').innerHTML = ''; $('#tab-thumbs').innerHTML = ''; $('#welcome').style.display = ''; $('#pageTot').textContent = '–';
-  ['#bSave', '#bOrg'].forEach(s => $(s).disabled = true); document.title = 'Lettore PDF'; updUndo(); refreshLists();
+  ['#bSave', '#bOrg'].forEach(s => $(s).disabled = true); document.title = 'Lyonel Burton'; updUndo(); refreshLists();
 }
 
 /* ---------- Aspetto: normale / notte / seppia ---------- */
@@ -236,6 +236,19 @@ document.addEventListener('keydown', e => {
   if (k === 'p'){ e.preventDefault(); printDoc(); }
   else if (k === 'o' && !DESKTOP){ e.preventDefault(); $('#fileIn').click(); }
 });
+
+/* ---------- Informazioni ---------- */
+const APP_NAME = 'Lyonel Burton', APP_VERSION = '1.0.0', APP_AUTHOR = 'Antonello Burtone';
+$('#bAbout').onclick = () => {
+  const b = showModal(`<div style="text-align:center"><div class="logo" style="display:inline-block;font-size:22px;padding:10px 14px;border-radius:12px">LB</div>
+    <h2 style="margin:10px 0 2px">${APP_NAME}</h2><div class="muted">Versione ${APP_VERSION}${DESKTOP ? ' · desktop' : ' · web'}</div></div>
+    <div class="sect" style="margin-top:14px"><p style="margin:2px 0"><b>Autore:</b> ${APP_AUTHOR}</p>
+    <p style="margin:2px 0">Legge, annota, compila, firma e organizza i PDF. Oscura, confronta, esporta, comprime, aggiunge filigrane e numeri di pagina, firma digitalmente${DESKTOP ? ' e fa l\'OCR delle scansioni' : ''}.</p>
+    <p style="margin:6px 0 0;font-size:12.5px">I documenti restano sul tuo computer: non vengono inviati a nessun server.</p></div>
+    <p style="font-size:12px;text-align:center;margin:8px 0 0">© ${new Date().getFullYear()} ${APP_AUTHOR}. Tutti i diritti riservati.</p>
+    <div class="mrow" style="justify-content:center"><button class="tb primary" id="abOk">Chiudi</button></div>`);
+  b.querySelector('#abOk').onclick = closeModal;
+};
 
 /* ---------- Avvio estensioni ---------- */
 (function initExt(){

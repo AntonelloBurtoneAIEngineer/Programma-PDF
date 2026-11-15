@@ -112,7 +112,7 @@ async function loadBytes(bytes, name, keep){
   $('#welcome').style.display = 'none';
   $('#pageTot').textContent = S.n; $('#pageIn').max = S.n;
   ['#bSave', '#bOrg'].forEach(s => $(s).disabled = false);
-  document.title = S.name + ' – Lettore PDF';
+  document.title = S.name + ' – Lyonel Burton';
   await buildPages();
   buildThumbs(); buildOutline(); refreshLists(); updUndo();
   $('#viewer').scrollTop = 0;

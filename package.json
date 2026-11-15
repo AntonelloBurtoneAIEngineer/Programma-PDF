@@ -1,8 +1,8 @@
 {
   "name": "lettore-pdf",
-  "productName": "Lettore PDF",
+  "productName": "Lyonel Burton",
   "version": "1.0.0",
-  "description": "Lettore PDF: leggi, annota, compila, firma, organizza, OCR.",
+  "description": "Lyonel Burton: legge, annota, compila, firma e organizza i PDF, con OCR.",
   "author": "Antonello Burtone",
   "license": "MIT",
   "private": true,
@@ -36,8 +36,8 @@
   },
   "build": {
     "appId": "it.antonello.lettorepdf",
-    "productName": "Lettore PDF",
-    "copyright": "Lettore PDF",
+    "productName": "Lyonel Burton",
+    "copyright": "Copyright © Antonello Burtone",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -50,7 +50,6 @@
       "!node_modules/**/*"
     ],
     "asar": true,
-    "npmRebuild": false,
     "fileAssociations": [
       {
         "ext": "pdf",
@@ -63,8 +62,18 @@
     "win": {
       "icon": "build/icon.ico",
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "nsis": {
@@ -73,11 +82,12 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Lettore PDF",
-      "artifactName": "Lettore-PDF-Setup-${version}.${ext}"
+      "shortcutName": "Lyonel Burton",
+      "artifactName": "Lyonel-Burton-Setup-${version}.${ext}"
     },
     "portable": {
-      "artifactName": "Lettore-PDF-Portable-${version}.${ext}"
-    }
+      "artifactName": "Lyonel-Burton-Portable-${version}.${ext}"
+    },
+    "npmRebuild": false
   }
 }

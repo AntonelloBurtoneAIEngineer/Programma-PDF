@@ -15,7 +15,7 @@ function sendFile(file){
     const bytes = fs.readFileSync(file);
     if (rendererReady && win) { win.webContents.send('open-file', path.basename(file), bytes); if (win.isMinimized()) win.restore(); win.focus(); }
     else pending.push(file);
-  } catch (e) { dialog.showErrorBox('Lettore PDF', 'Impossibile aprire il file:\n' + file + '\n' + e.message); }
+  } catch (e) { dialog.showErrorBox('Lyonel Burton', 'Impossibile aprire il file:\n' + file + '\n' + e.message); }
 }
 async function openDialog(){
   const r = await dialog.showOpenDialog(win, {title: 'Apri PDF', properties: ['openFile', 'multiSelections'], filters: [{name: 'Documenti PDF', extensions: ['pdf']}]});
@@ -24,7 +24,7 @@ async function openDialog(){
 
 function createWindow(){
   win = new BrowserWindow({
-    width: 1360, height: 900, minWidth: 820, minHeight: 560, backgroundColor: '#3a3c42', title: 'Lettore PDF',
+    width: 1360, height: 900, minWidth: 820, minHeight: 560, backgroundColor: '#3a3c42', title: 'Lyonel Burton',
     icon: path.join(__dirname, 'build', 'icon.png'),
     webPreferences: {preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true}
   });
@@ -32,7 +32,7 @@ function createWindow(){
   win.webContents.setWindowOpenHandler(({url}) => { if (/^https?:|^mailto:/i.test(url)) shell.openExternal(url); return {action: 'deny'}; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('app://')) { e.preventDefault(); if (/^https?:|^mailto:/i.test(url)) shell.openExternal(url); } });
   win.webContents.on('will-prevent-unload', e => {
-    const c = dialog.showMessageBoxSync(win, {type: 'warning', buttons: ['Torna al documento', 'Chiudi senza salvare'], defaultId: 0, cancelId: 0, title: 'Lettore PDF',
+    const c = dialog.showMessageBoxSync(win, {type: 'warning', buttons: ['Torna al documento', 'Chiudi senza salvare'], defaultId: 0, cancelId: 0, title: 'Lyonel Burton',
       message: 'Ci sono modifiche non salvate.', detail: 'Se chiudi ora, annotazioni, campi compilati e modifiche alle pagine andranno persi.'});
     if (c === 1) e.preventDefault();
   });
@@ -47,11 +47,13 @@ function buildMenu(){
     {label: 'Visualizza', submenu: [
       {role: 'togglefullscreen', label: 'Schermo intero'}, {role: 'zoomIn', label: 'Ingrandisci interfaccia'}, {role: 'zoomOut', label: 'Riduci interfaccia'}, {role: 'resetZoom', label: 'Dimensione normale'},
       {role: 'toggleDevTools', label: 'Strumenti sviluppatore'}]},
-    {label: '?', submenu: [{label: 'Informazioni', click: () => dialog.showMessageBox(win, {type: 'info', title: 'Lettore PDF', message: 'Lettore PDF ' + app.getVersion(), detail: 'Legge, annota, compila, firma e organizza i PDF. I file restano sul tuo computer.'})}]}
+    {label: '?', submenu: [{label: 'Informazioni', click: () => dialog.showMessageBox(win, {type: 'info', title: 'Informazioni', message: 'Lyonel Burton ' + app.getVersion(), detail: 'Autore: Antonello Burtone\n\nLegge, annota, compila, firma e organizza i PDF. I file restano sul tuo computer.\n\n© ' + new Date().getFullYear() + ' Antonello Burtone. Tutti i diritti riservati.'})}]}
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(t));
 }
 
+app.setName('Lyonel Burton');
+app.setAboutPanelOptions({applicationName: 'Lyonel Burton', applicationVersion: app.getVersion(), copyright: '© Antonello Burtone', credits: 'Autore: Antonello Burtone'});
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', (_e, argv) => { if (win){ if (win.isMinimized()) win.restore(); win.focus(); } pdfArgs(argv).forEach(sendFile); });

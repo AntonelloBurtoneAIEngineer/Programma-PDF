@@ -277,7 +277,7 @@ async function signWithP12(p12bytes, pw, o){
     page.drawText(l1, {x: t1.x, y: t1.y, size: 9, font, color: rgb(.1, .25, .6), rotate: degrees(g.rot)});
     page.drawText(l2, {x: t2.x, y: t2.y, size: 8, font, color: rgb(.25, .25, .3), rotate: degrees(g.rot)});
   }
-  P.pdflibAddPlaceholder({pdfDoc: doc, reason: o.reason || 'Firma', contactInfo: o.contact || '', name: info.cn, location: o.location || '', signingTime: now, signatureLength: 16384, subFilter: P.SUBFILTER_ADOBE_PKCS7_DETACHED, appName: 'Lettore PDF'});
+  P.pdflibAddPlaceholder({pdfDoc: doc, reason: o.reason || 'Firma', contactInfo: o.contact || '', name: info.cn, location: o.location || '', signingTime: now, signatureLength: 16384, subFilter: P.SUBFILTER_ADOBE_PKCS7_DETACHED, appName: 'Lyonel Burton'});
   const bytes = await doc.save({useObjectStreams: false});
   const signer = new P.P12Signer(P.Buffer.from(p12bytes), {passphrase: pw});
   const signed = await P.signpdf.sign(P.Buffer.from(bytes), signer, now);
