@@ -38,15 +38,34 @@
     "appId": "it.antonello.lettorepdf",
     "productName": "Lettore PDF",
     "copyright": "Lettore PDF",
-    "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["main.js", "preload.js", "src/**/*", "package.json"],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "package.json",
+      "!node_modules/**/*"
+    ],
     "asar": true,
+    "npmRebuild": false,
     "fileAssociations": [
-      { "ext": "pdf", "name": "Documento PDF", "description": "Documento PDF", "role": "Viewer", "icon": "build/icon.ico" }
+      {
+        "ext": "pdf",
+        "name": "Documento PDF",
+        "description": "Documento PDF",
+        "role": "Viewer",
+        "icon": "build/icon.ico"
+      }
     ],
     "win": {
       "icon": "build/icon.ico",
-      "target": [ { "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] } ]
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -57,6 +76,8 @@
       "shortcutName": "Lettore PDF",
       "artifactName": "Lettore-PDF-Setup-${version}.${ext}"
     },
-    "portable": { "artifactName": "Lettore-PDF-Portable-${version}.${ext}" }
+    "portable": {
+      "artifactName": "Lettore-PDF-Portable-${version}.${ext}"
+    }
   }
 }
