@@ -1,0 +1,62 @@
+{
+  "name": "lettore-pdf",
+  "productName": "Lettore PDF",
+  "version": "1.0.0",
+  "description": "Lettore PDF: leggi, annota, compila, firma, organizza, OCR.",
+  "author": "Antonello Burtone",
+  "license": "MIT",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "build:app": "node scripts/build-app.js",
+    "prepare:ocr": "node scripts/prepare-ocr.js",
+    "prep": "npm run build:app && npm run prepare:ocr",
+    "start": "npm run prep && electron .",
+    "dist": "npm run prep && electron-builder --win --x64 --publish never"
+  },
+  "dependencies": {
+    "@signpdf/placeholder-pdf-lib": "^4.0.0",
+    "@signpdf/signer-p12": "^4.0.0",
+    "@signpdf/signpdf": "^4.0.0",
+    "@signpdf/utils": "^4.0.0",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@tesseract.js-data/ita": "^1.0.0",
+    "buffer": "^6.0.3",
+    "jszip": "3.10.2",
+    "node-forge": "^1.3.1",
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "3.11.174",
+    "tesseract.js": "5.1.1",
+    "tesseract.js-core": "5.1.1"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.28.2"
+  },
+  "build": {
+    "appId": "it.antonello.lettorepdf",
+    "productName": "Lettore PDF",
+    "copyright": "Lettore PDF",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "src/**/*", "package.json"],
+    "asar": true,
+    "fileAssociations": [
+      { "ext": "pdf", "name": "Documento PDF", "description": "Documento PDF", "role": "Viewer", "icon": "build/icon.ico" }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [ { "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] } ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Lettore PDF",
+      "artifactName": "Lettore-PDF-Setup-${version}.${ext}"
+    },
+    "portable": { "artifactName": "Lettore-PDF-Portable-${version}.${ext}" }
+  }
+}
