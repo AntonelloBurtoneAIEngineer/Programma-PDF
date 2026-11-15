@@ -30,14 +30,22 @@ function restorePos(){
   if (p.page > 1 && p.page <= S.n) goToPage(p.page);
 }
 $('#viewer').addEventListener('scroll', debounce(savePos, 500));
-window.addEventListener('beforeunload', savePos);
+window.addEventListener('beforeunload', e => {
+  savePos(); snapTab();
+  if (TABS.some(t => t.dirty)){ e.preventDefault(); e.returnValue = ''; return ''; }
+});
 
 /* ---------- Schede ---------- */
 const TABS = []; let ACTIVE = null, SWITCHING = false;
 const _loadBytes = loadBytes;
+const dirtySig = () => JSON.stringify([S.anns, [...S.touched].map(n => [n, S.fields[n]]), S.bytes ? S.bytes.length : 0]);
+function markClean(){ S.clean = dirtySig(); renderTabs(); updTitle(); }
+const isDirty = () => !!S.doc && S.clean !== undefined && dirtySig() !== S.clean;
+function updTitle(){ if (S.doc) document.title = (isDirty() ? '● ' : '') + S.name + ' – Lettore PDF'; }
+setInterval(updTitle, 1500);
 function snapTab(){
   const t = TABS.find(x => x.id === ACTIVE); if (!t || !S.doc) return;
-  Object.assign(t, {bytes: S.bytes, name: S.name, anns: S.anns, hist: S.hist, redo: S.redo, fields: S.fields, touched: [...S.touched],
+  Object.assign(t, {dirty: isDirty(), clean: S.clean, bytes: S.bytes, name: S.name, anns: S.anns, hist: S.hist, redo: S.redo, fields: S.fields, touched: [...S.touched],
     docUndo: S.docUndo, cur: S.cur, zoomMode: S.zoomMode, scale: S.scale, encrypted: S.encrypted, pw: S.encrypted ? LAST_PW : null});
   savePos();
 }
@@ -46,7 +54,7 @@ loadBytes = async function(bytes, name, keep){
   const ok = await _loadBytes(bytes, name, keep);
   if (!ok) return ok;
   if (!SWITCHING){
-    if (!keep){ const t = {id: uid(), name: S.name}; TABS.push(t); ACTIVE = t.id; restorePos(); }
+    if (!keep){ const t = {id: uid(), name: S.name}; TABS.push(t); ACTIVE = t.id; restorePos(); markClean(); }
     else { const t = TABS.find(x => x.id === ACTIVE); if (t) t.name = S.name; }
   }
   renderTabs(); return ok;
@@ -54,7 +62,7 @@ loadBytes = async function(bytes, name, keep){
 function renderTabs(){
   const bar = $('#tabbar'); bar.hidden = TABS.length < 2; bar.innerHTML = '';
   TABS.forEach(t => {
-    const act = t.id === ACTIVE, dirty = act ? (S.anns.length || S.touched.size) : ((t.anns && t.anns.length) || (t.touched && t.touched.length));
+    const act = t.id === ACTIVE, dirty = act ? isDirty() : t.dirty;
     const d = el('div', 't' + (act ? ' on' : ''), `<span>${dirty ? '● ' : ''}${esc(act ? S.name : t.name)}</span><b title="Chiudi">✕</b>`);
     d.onclick = () => switchTab(t.id);
     d.querySelector('b').onclick = ev => { ev.stopPropagation(); closeTab(t.id); };
@@ -68,7 +76,7 @@ async function switchTab(id){
   try {
     S.anns = t.anns; S.hist = t.hist; S.redo = t.redo; S.fields = t.fields; S.touched = new Set(t.touched); S.docUndo = t.docUndo;
     S.zoomMode = t.zoomMode; S.scale = t.scale; PW_HINT = t.pw; ACTIVE = id;
-    await _loadBytes(t.bytes, t.name, true); S.encrypted = t.encrypted;
+    await _loadBytes(t.bytes, t.name, true); S.encrypted = t.encrypted; S.clean = t.clean;
     goToPage(t.cur || 1); updUndo();
   } finally { SWITCHING = false; renderTabs(); }
 }
@@ -76,8 +84,8 @@ async function closeTab(id){
   const i = TABS.findIndex(x => x.id === id); if (i < 0) return;
   if (id === ACTIVE) snapTab();
   const t = TABS[i];
-  if ((t.anns && t.anns.length) || (t.touched && t.touched.length)){
-    if (!(await askConfirm('Chiudere il documento?', 'Ci sono annotazioni o campi non salvati: andranno persi.', 'Chiudi'))) return;
+  if (t.dirty){
+    if (!(await askConfirm('Chiudere il documento?', 'Ci sono modifiche non salvate (annotazioni, campi o pagine): andranno perse.', 'Chiudi senza salvare'))) return;
   }
   if (TABS.length === 1){ TABS.length = 0; ACTIVE = null; resetViewer(); renderTabs(); return; }
   if (id === ACTIVE){ await switchTab(TABS[i === 0 ? 1 : i - 1].id); }
@@ -216,6 +224,18 @@ $('#pages').addEventListener('pointerdown', e => {
   setTool('select'); selectAnn(txt.id);
   setTimeout(() => { const d = document.querySelector(`.atext[data-id="${txt.id}"]`); if (d && getAnn(txt.id)) startTextEdit(d, txt); }, 90);
 }, true);
+
+/* ---------- Zoom con Ctrl + rotellina, scorciatoie ---------- */
+let wheelT = 0;
+$('#viewer').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey) || !S.doc) return; e.preventDefault();
+  const now = Date.now(); if (now - wheelT < 60) return; wheelT = now; zoomBy(e.deltaY < 0 ? 1.1 : 1 / 1.1);
+}, {passive: false});
+document.addEventListener('keydown', e => {
+  if (!(e.ctrlKey || e.metaKey)) return; const k = e.key.toLowerCase();
+  if (k === 'p'){ e.preventDefault(); printDoc(); }
+  else if (k === 'o' && !DESKTOP){ e.preventDefault(); $('#fileIn').click(); }
+});
 
 /* ---------- Avvio estensioni ---------- */
 (function initExt(){

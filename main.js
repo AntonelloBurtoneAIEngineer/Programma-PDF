@@ -31,7 +31,11 @@ function createWindow(){
   win.loadURL('app://local/index.html');
   win.webContents.setWindowOpenHandler(({url}) => { if (/^https?:|^mailto:/i.test(url)) shell.openExternal(url); return {action: 'deny'}; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('app://')) { e.preventDefault(); if (/^https?:|^mailto:/i.test(url)) shell.openExternal(url); } });
-  win.on('page-title-updated', () => {});
+  win.webContents.on('will-prevent-unload', e => {
+    const c = dialog.showMessageBoxSync(win, {type: 'warning', buttons: ['Torna al documento', 'Chiudi senza salvare'], defaultId: 0, cancelId: 0, title: 'Lettore PDF',
+      message: 'Ci sono modifiche non salvate.', detail: 'Se chiudi ora, annotazioni, campi compilati e modifiche alle pagine andranno persi.'});
+    if (c === 1) e.preventDefault();
+  });
   win.on('closed', () => { win = null; rendererReady = false; });
 }
 

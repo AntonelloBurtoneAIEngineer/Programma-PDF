@@ -387,3 +387,17 @@ async function openOcr(){
   };
 }
 $('#bOcr').onclick = openOcr;
+
+/* ---------- Stampa ---------- */
+async function printDoc(){
+  if (!needDoc()) return;
+  try {
+    toast('Preparo la stampa…'); const pdf = await openPdf(await commitEdits()).promise;
+    let area = $('#printArea'); if (!area){ area = el('div'); area.id = 'printArea'; document.body.append(area); } area.innerHTML = '';
+    for (let n = 1; n <= pdf.numPages; n++) area.append(await renderCanvas(pdf, n, 150 / 72));
+    pdf.destroy();
+    window.addEventListener('afterprint', () => { area.innerHTML = ''; }, {once: true});
+    window.print();
+  } catch(e){ console.error(e); toast('Stampa non disponibile qui: ' + (e && e.message || e), true); }
+}
+$('#bPrint').onclick = printDoc;

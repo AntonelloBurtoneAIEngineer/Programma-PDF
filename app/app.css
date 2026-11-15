@@ -210,3 +210,11 @@ body.night .page{background:#111}
 .cmplist button.cur{outline:2px solid var(--sel)}
 .mhead{padding:12px 16px;border-bottom:1px solid var(--barline);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .mhead h2{margin:0;flex:1}
+
+#printArea{display:none}
+@media print{
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block!important}
+  #printArea canvas{display:block;max-width:100%;max-height:99vh;margin:0 auto;break-after:page;page-break-after:always}
+  @page{margin:0}
+}

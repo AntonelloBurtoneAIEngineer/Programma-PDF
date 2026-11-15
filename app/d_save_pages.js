@@ -101,7 +101,7 @@ async function saveCurrent(){
   try {
     const out = await buildPdf();
     const ok = await saveFile(baseName() + '-modificato.pdf', out, 'application/pdf');
-    if (ok) toast('PDF pronto.');
+    if (ok){ toast('PDF pronto.'); markClean(); }
   } catch(e){ console.error(e); toast('Errore nel salvataggio: ' + (e && e.message || e), true); }
 }
 $('#bSave').onclick = saveCurrent;
