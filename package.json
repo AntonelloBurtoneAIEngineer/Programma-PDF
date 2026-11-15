@@ -1,7 +1,7 @@
 {
   "name": "lettore-pdf",
   "productName": "Lyonel Burton",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Lyonel Burton: legge, annota, compila, firma e organizza i PDF, con OCR.",
   "author": "Antonello Burtone",
   "license": "MIT",
@@ -47,6 +47,7 @@
       "preload.js",
       "src/**/*",
       "package.json",
+      "LICENSE",
       "!node_modules/**/*"
     ],
     "asar": true,
@@ -78,12 +79,15 @@
     },
     "nsis": {
       "oneClick": false,
-      "perMachine": false,
+      "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Lyonel Burton",
-      "artifactName": "Lyonel-Burton-Setup-${version}.${ext}"
+      "artifactName": "Lyonel-Burton-Setup-${version}.${ext}",
+      "allowElevation": true,
+      "deleteAppDataOnUninstall": false,
+      "license": "build/license.txt"
     },
     "portable": {
       "artifactName": "Lyonel-Burton-Portable-${version}.${ext}"

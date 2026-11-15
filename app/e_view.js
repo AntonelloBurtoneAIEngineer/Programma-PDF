@@ -237,8 +237,57 @@ document.addEventListener('keydown', e => {
   else if (k === 'o' && !DESKTOP){ e.preventDefault(); $('#fileIn').click(); }
 });
 
+/* ---------- Inserimento immagini ---------- */
+async function imageFromFile(file){
+  if (!/^image\/(png|jpe?g|gif|webp|bmp|svg\+xml)$/i.test(file.type)) throw new Error('Formato non supportato: usa PNG, JPG, GIF, WEBP, BMP o SVG.');
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Immagine non leggibile.')); i.src = url; });
+    let w = img.naturalWidth || 800, h = img.naturalHeight || 600; const M = 2400, k = Math.min(1, M / Math.max(w, h)); w = Math.max(1, Math.round(w * k)); h = Math.max(1, Math.round(h * k));
+    const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.drawImage(img, 0, 0, w, h);
+    let alpha = false;
+    if (!/jpe?g/i.test(file.type)){ const d = x.getImageData(0, 0, w, h).data; for (let i = 3; i < d.length; i += 16) if (d[i] < 250){ alpha = true; break; } }
+    let data;
+    if (alpha) data = c.toDataURL('image/png');
+    else { const c2 = document.createElement('canvas'); c2.width = w; c2.height = h; const x2 = c2.getContext('2d'); x2.fillStyle = '#fff'; x2.fillRect(0, 0, w, h); x2.drawImage(c, 0, 0); data = c2.toDataURL('image/jpeg', .9); }
+    return {data, ar: w / h};
+  } finally { URL.revokeObjectURL(url); }
+}
+function pickImage(){
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/gif,image/webp,image/bmp,image/svg+xml';
+  inp.onchange = async () => {
+    const f = inp.files[0]; if (!f){ return; }
+    try { S.pic = await imageFromFile(f); if (S.tool !== 'picture'){ S.tool = 'select'; setTool('picture'); } toast('Clicca sulla pagina nel punto in cui inserire l\'immagine. Poi puoi spostarla e ridimensionarla.'); }
+    catch(e){ toast(e.message || String(e), true); }
+  };
+  inp.click();
+}
+async function insertPicAt(pic, pageNum, fx, fy){
+  const p = pageOf(pageNum); if (!p) return;
+  const pr = p.el.getBoundingClientRect(); let w = .4, h = w * pr.width / pic.ar / pr.height;
+  if (h > .6){ h = .6; w = h * pr.height * pic.ar / pr.width; }
+  const a = {id: uid(), type: 'image', kind: 'picture', page: pageNum, x: clamp(fx - w / 2, 0, 1 - w), y: clamp(fy - h / 2, 0, 1 - h), w, ar: pic.ar, data: pic.data};
+  addAnn(a); setTool('select'); selectAnn(a.id);
+}
+async function dropImage(file, e){
+  if (!(await ensureEditable())) return;
+  try {
+    const pic = await imageFromFile(file); S.pic = pic;
+    const pe = document.elementFromPoint(e.clientX, e.clientY); const pageEl = pe && pe.closest('.page');
+    if (pageEl){ const r = pageEl.getBoundingClientRect(); insertPicAt(pic, parseInt(pageEl.dataset.n), (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); }
+    else insertPicAt(pic, S.cur, .5, .4);
+  } catch(err){ toast(err.message || String(err), true); }
+}
+document.addEventListener('paste', async e => {
+  if (!S.doc || /input|textarea/i.test((e.target.tagName || '')) || e.target.isContentEditable) return;
+  const it = [...(e.clipboardData ? e.clipboardData.items : [])].find(i => i.kind === 'file' && /^image\//.test(i.type)); if (!it) return;
+  e.preventDefault(); if (!(await ensureEditable())) return;
+  try { const pic = await imageFromFile(it.getAsFile()); S.pic = pic; insertPicAt(pic, S.cur, .5, .4); toast('Immagine incollata: trascinala dove vuoi.'); }
+  catch(err){ toast(err.message || String(err), true); }
+});
+
 /* ---------- Informazioni ---------- */
-const APP_NAME = 'Lyonel Burton', APP_VERSION = '1.0.0', APP_AUTHOR = 'Antonello Burtone';
+const APP_NAME = 'Lyonel Burton', APP_VERSION = '1.1.0', APP_AUTHOR = 'Antonello Burtone';
 $('#bAbout').onclick = () => {
   const b = showModal(`<div style="text-align:center"><div class="logo" style="display:inline-block;font-size:22px;padding:10px 14px;border-radius:12px">LB</div>
     <h2 style="margin:10px 0 2px">${APP_NAME}</h2><div class="muted">Versione ${APP_VERSION}${DESKTOP ? ' · desktop' : ' · web'}</div></div>

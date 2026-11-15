@@ -1,4 +1,4 @@
-const {app, BrowserWindow, protocol, Menu, dialog, ipcMain, shell, session} = require('electron');
+const {app, BrowserWindow, protocol, Menu, dialog, ipcMain, shell, session, net} = require('electron');
 const path = require('path'), fs = require('fs');
 
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: {standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true}}]);
@@ -8,6 +8,20 @@ const MIME = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.c
   '.gz': 'application/octet-stream', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon'};
 
 let win = null, rendererReady = false; const pending = [];
+const REPO = 'AntonelloBurtoneAIEngineer/Programma-PDF';
+const verNum = v => String(v || '').replace(/^v/i, '').split(/[.-]/).slice(0, 3).map(x => parseInt(x, 10) || 0);
+const newer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < 3; i++){ if (x[i] !== y[i]) return x[i] > y[i]; } return false; };
+async function checkUpdates(manual){
+  try {
+    const r = await net.fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {headers: {'Accept': 'application/vnd.github+json', 'User-Agent': 'Lyonel-Burton'}});
+    if (r.status === 404){ if (manual) dialog.showMessageBox(win, {type: 'info', title: 'Aggiornamenti', message: 'Non ci sono ancora versioni pubblicate.'}); return; }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json(), latest = (j.tag_name || '').replace(/^v/i, ''), current = app.getVersion();
+    if (latest && newer(latest, current)){
+      if (win) win.webContents.send('update-available', {latest, current, url: j.html_url || `https://github.com/${REPO}/releases/latest`, notes: (j.body || '').slice(0, 2000)});
+    } else if (manual) dialog.showMessageBox(win, {type: 'info', title: 'Aggiornamenti', message: 'Hai già la versione più recente (' + current + ').'});
+  } catch (e) { if (manual) dialog.showMessageBox(win, {type: 'warning', title: 'Aggiornamenti', message: 'Impossibile controllare gli aggiornamenti.', detail: String(e.message || e)}); }
+}
 const pdfArgs = argv => argv.slice(app.isPackaged ? 1 : 2).filter(a => /\.pdf$/i.test(a) && fs.existsSync(a));
 
 function sendFile(file){
@@ -47,7 +61,7 @@ function buildMenu(){
     {label: 'Visualizza', submenu: [
       {role: 'togglefullscreen', label: 'Schermo intero'}, {role: 'zoomIn', label: 'Ingrandisci interfaccia'}, {role: 'zoomOut', label: 'Riduci interfaccia'}, {role: 'resetZoom', label: 'Dimensione normale'},
       {role: 'toggleDevTools', label: 'Strumenti sviluppatore'}]},
-    {label: '?', submenu: [{label: 'Informazioni', click: () => dialog.showMessageBox(win, {type: 'info', title: 'Informazioni', message: 'Lyonel Burton ' + app.getVersion(), detail: 'Autore: Antonello Burtone\n\nLegge, annota, compila, firma e organizza i PDF. I file restano sul tuo computer.\n\n© ' + new Date().getFullYear() + ' Antonello Burtone. Tutti i diritti riservati.'})}]}
+    {label: '?', submenu: [{label: 'Controlla aggiornamenti…', click: () => checkUpdates(true)}, {label: 'Pagina del progetto su GitHub', click: () => shell.openExternal('https://github.com/' + REPO)}, {type: 'separator'}, {label: 'Informazioni', click: () => dialog.showMessageBox(win, {type: 'info', title: 'Informazioni', message: 'Lyonel Burton ' + app.getVersion(), detail: 'Autore: Antonello Burtone\n\nLegge, annota, compila, firma e organizza i PDF. I file restano sul tuo computer.\n\n© ' + new Date().getFullYear() + ' Antonello Burtone. Tutti i diritti riservati.'})}]}
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(t));
 }
@@ -58,7 +72,8 @@ if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', (_e, argv) => { if (win){ if (win.isMinimized()) win.restore(); win.focus(); } pdfArgs(argv).forEach(sendFile); });
   app.on('open-file', (e, file) => { e.preventDefault(); sendFile(file); });
-  ipcMain.on('renderer-ready', () => { rendererReady = true; while (pending.length) sendFile(pending.shift()); });
+  ipcMain.on('renderer-ready', () => { rendererReady = true; while (pending.length) sendFile(pending.shift()); setTimeout(() => checkUpdates(false), 4000); });
+  ipcMain.on('open-external', (_e, url) => { if (/^https:\/\/github\.com\//i.test(String(url))) shell.openExternal(url); });
   app.whenReady().then(() => {
     protocol.handle('app', req => {
       try {

@@ -66,6 +66,23 @@ async function buildPdf(){
       if (pts.length === 1){ const c = g.to(pts[0][0], pts[0][1]); page.drawCircle({x: c.x, y: c.y, size: a.width / 2, color: col}); }
       for (let i = 1; i < pts.length; i++)
         page.drawLine({start: g.to(pts[i-1][0], pts[i-1][1]), end: g.to(pts[i][0], pts[i][1]), thickness: a.width, color: col, lineCap: LineCapStyle.Round});
+    } else if (a.type === 'shape'){
+      const col = hex2rgb(a.color), th = a.width, L = (p, q) => page.drawLine({start: p, end: q, thickness: th, color: col, lineCap: LineCapStyle.Round});
+      if (a.kind === 'rect'){
+        const xs = [Math.min(a.x1, a.x2), Math.max(a.x1, a.x2)], ys = [Math.min(a.y1, a.y2), Math.max(a.y1, a.y2)];
+        const c = [g.to(xs[0], ys[0]), g.to(xs[1], ys[0]), g.to(xs[1], ys[1]), g.to(xs[0], ys[1])];
+        page.drawSvgPath(`M${c[0].x} ${-c[0].y}L${c[1].x} ${-c[1].y}L${c[2].x} ${-c[2].y}L${c[3].x} ${-c[3].y}Z`, {x: 0, y: 0, borderColor: col, borderWidth: th, borderLineCap: LineCapStyle.Round});
+      } else if (a.kind === 'ellipse'){
+        const cx = (a.x1 + a.x2) / 2, cy = (a.y1 + a.y2) / 2, rx = Math.abs(a.x2 - a.x1) / 2, ry = Math.abs(a.y2 - a.y1) / 2, N = 72; let d = '';
+        for (let i = 0; i <= N; i++){ const t = i / N * 2 * Math.PI, q = g.to(cx + rx * Math.cos(t), cy + ry * Math.sin(t)); d += (i ? 'L' : 'M') + q.x + ' ' + (-q.y); }
+        page.drawSvgPath(d + 'Z', {x: 0, y: 0, borderColor: col, borderWidth: th});
+      } else {
+        const p1 = g.to(a.x1, a.y1), p2 = g.to(a.x2, a.y2); L(p1, p2);
+        if (a.kind === 'arrow'){
+          const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x), Ln = Math.max(6, th * 4.5), sp = .45;
+          L(p2, {x: p2.x - Ln * Math.cos(ang - sp), y: p2.y - Ln * Math.sin(ang - sp)}); L(p2, {x: p2.x - Ln * Math.cos(ang + sp), y: p2.y - Ln * Math.sin(ang + sp)});
+        }
+      }
     } else if (a.type === 'note'){
       const c = g.to(a.x, a.y), col = hex3(a.color || '#ffd84a');
       const annot = doc.context.obj({Type: 'Annot', Subtype: 'Text', Rect: [c.x - 10, c.y - 10, c.x + 10, c.y + 10],
@@ -80,7 +97,7 @@ async function buildPdf(){
       const p1 = g.to(a.x, a.y), p2 = g.to(a.x + a.w, a.y + a.h);
       page.drawRectangle({x: Math.min(p1.x, p2.x), y: Math.min(p1.y, p2.y), width: Math.abs(p2.x - p1.x), height: Math.abs(p2.y - p1.y), color: rgb(1, 1, 1), borderWidth: 0});
     } else if (a.type === 'image'){
-      let im = imgCache[a.data]; if (!im){ im = await doc.embedPng(a.data); imgCache[a.data] = im; }
+      let im = imgCache[a.data]; if (!im){ im = /^data:image\/jpe?g/i.test(a.data) ? await doc.embedJpg(a.data) : await doc.embedPng(a.data); imgCache[a.data] = im; }
       const wpt = a.w * g.dispW, hpt = wpt / a.ar, org = g.to(a.x, a.y + hpt / g.dispH);
       page.drawImage(im, {x: org.x, y: org.y, width: wpt, height: hpt, rotate: degrees(g.rot)});
     }

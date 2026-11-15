@@ -26,7 +26,7 @@ const S = {
   search: {q:'', results:[], idx:-1, ver:0}, textCache: {}, docUndo: [], penW: 3, textSize: 14, encrypted: false,
   spread: false, stamp: null
 };
-S.toolColor.stamp = '#111111'; S.toolColor.redact = '#000000'; S.toolColor.edittext = '#111111';
+S.toolColor.stamp = '#111111'; S.toolColor.picture = '#111111'; S.toolColor.shape = '#e03131'; S.shapeW = 2; S.shapeKind = 'rect'; S.toolColor.redact = '#000000'; S.toolColor.edittext = '#111111';
 
 /* ---------- Utilità ---------- */
 let toastT = null;
@@ -371,5 +371,8 @@ window.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth -
 window.addEventListener('dragover', e => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) e.preventDefault(); });
 window.addEventListener('drop', e => {
   dragDepth = 0; $('#dropHint').classList.remove('show');
-  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){ e.preventDefault(); openFile(e.dataTransfer.files[0]); }
+  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){
+    e.preventDefault(); const f = e.dataTransfer.files[0];
+    if (/^image\//.test(f.type) && S.doc && typeof dropImage === 'function') dropImage(f, e); else openFile(f);
+  }
 });

@@ -5,7 +5,7 @@
    restano corrette a qualsiasi zoom.
    ===================================================================== */
 const MARKUP = ['highlight', 'underline', 'strike'];
-const CAPTURE = ['pen', 'note', 'text', 'sign', 'stamp', 'redact'];
+const CAPTURE = ['pen', 'note', 'text', 'sign', 'stamp', 'redact', 'picture', 'shape', 'crop'];
 const getAnn = id => S.anns.find(a => a.id === id);
 const pageOf = n => S.pages[n - 1];
 const captureClass = () => CAPTURE.includes(S.tool) ? ' capture t-' + S.tool : '';
@@ -70,6 +70,10 @@ function mkAnn(p, a){
     path.setAttribute('stroke-width', Math.max(1, a.width * S.scale)); path.dataset.id = a.id;
     svg.append(path); return svg;
   }
+  if (a.type === 'shape'){
+    const W = p.vw || p.el.clientWidth, H = p.vh || p.el.clientHeight;
+    const svg = shapeSvg(a, W, H, 'apen ashape'); svg.dataset.id = a.id; svg.firstChild.dataset.id = a.id; return svg;
+  }
   if (a.type === 'note'){
     const d = el('div', 'anote', '💬'); d.dataset.id = a.id; d.style.left = pct(a.x); d.style.top = pct(a.y); d.style.background = a.color || '#ffd84a';
     d.title = a.text || 'Nota vuota'; return d;
@@ -89,6 +93,51 @@ function mkAnn(p, a){
     const im = document.createElement('img'); im.src = a.data; im.draggable = false; d.append(im); return d;
   }
   return null;
+}
+const SVGNS = 'http://www.w3.org/2000/svg';
+function shapeSvg(a, W, H, cls){
+  const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', cls); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const x1 = a.x1 * W, y1 = a.y1 * H, x2 = a.x2 * W, y2 = a.y2 * H, sw = Math.max(1, a.width * S.scale);
+  let d;
+  if (a.kind === 'rect') d = `M${Math.min(x1, x2)} ${Math.min(y1, y2)}h${Math.abs(x2 - x1)}v${Math.abs(y2 - y1)}h${-Math.abs(x2 - x1)}Z`;
+  else if (a.kind === 'ellipse'){ const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2, rx = Math.abs(x2 - x1) / 2 || .5, ry = Math.abs(y2 - y1) / 2 || .5; d = `M${cx - rx} ${cy}a${rx} ${ry} 0 1 0 ${2 * rx} 0a${rx} ${ry} 0 1 0 ${-2 * rx} 0Z`; }
+  else {
+    d = `M${x1} ${y1}L${x2} ${y2}`;
+    if (a.kind === 'arrow'){
+      const ang = Math.atan2(y2 - y1, x2 - x1), L = Math.max(8, sw * 4.5), sp = .45;
+      d += `M${x2 - L * Math.cos(ang - sp)} ${y2 - L * Math.sin(ang - sp)}L${x2} ${y2}L${x2 - L * Math.cos(ang + sp)} ${y2 - L * Math.sin(ang + sp)}`;
+    }
+  }
+  const path = document.createElementNS(SVGNS, 'path'); path.setAttribute('d', d); path.setAttribute('stroke', a.color); path.setAttribute('stroke-width', sw);
+  path.setAttribute('fill', 'none'); path.setAttribute('stroke-linecap', 'round'); path.setAttribute('stroke-linejoin', 'round');
+  svg.append(path); return svg;
+}
+function startShape(e, p, layer, pr){
+  e.preventDefault(); layer.setPointerCapture(e.pointerId);
+  const W = pr.width, H = pr.height, P = ev => [clamp((ev.clientX - pr.left) / W, 0, 1), clamp((ev.clientY - pr.top) / H, 0, 1)];
+  const [x0, y0] = P(e); const a = {kind: S.shapeKind || 'rect', x1: x0, y1: y0, x2: x0, y2: y0, color: S.toolColor.shape, width: S.shapeW};
+  let tmp = null;
+  const mv = ev => { let [x, y] = P(ev);
+    if (ev.shiftKey){ if (a.kind === 'line' || a.kind === 'arrow'){ if (Math.abs(x - x0) * W > Math.abs(y - y0) * H) y = y0; else x = x0; } else { const s = Math.max(Math.abs(x - x0) * W, Math.abs(y - y0) * H); x = clamp(x0 + Math.sign(x - x0 || 1) * s / W, 0, 1); y = clamp(y0 + Math.sign(y - y0 || 1) * s / H, 0, 1); } }
+    a.x2 = x; a.y2 = y; if (tmp) tmp.remove(); tmp = shapeSvg(a, W, H, 'tempPen'); layer.append(tmp); };
+  const up = () => {
+    layer.removeEventListener('pointermove', mv); layer.removeEventListener('pointerup', up); layer.removeEventListener('pointercancel', up);
+    if (tmp) tmp.remove();
+    if (Math.hypot((a.x2 - a.x1) * W, (a.y2 - a.y1) * H) > 6) addAnn(Object.assign({id: uid(), type: 'shape', page: p.num}, a));
+  };
+  layer.addEventListener('pointermove', mv); layer.addEventListener('pointerup', up); layer.addEventListener('pointercancel', up);
+}
+function moveShape(e, a, p){
+  e.preventDefault(); e.stopPropagation();
+  const pr = p.el.getBoundingClientRect(), sx = e.clientX, sy = e.clientY, o = [a.x1, a.y1, a.x2, a.y2]; let moved = false;
+  const mv = ev => {
+    if (!moved){ if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 3) return; moved = true; snap(); }
+    let dx = (ev.clientX - sx) / pr.width, dy = (ev.clientY - sy) / pr.height;
+    dx = clamp(dx, -Math.min(o[0], o[2]), 1 - Math.max(o[0], o[2])); dy = clamp(dy, -Math.min(o[1], o[3]), 1 - Math.max(o[1], o[3]));
+    a.x1 = o[0] + dx; a.x2 = o[2] + dx; a.y1 = o[1] + dy; a.y2 = o[3] + dy; buildAnnLayer(p);
+  };
+  const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); if (moved) refreshLists(); };
+  window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
 }
 function penPath(pts, W, H){
   if (!pts.length) return '';
@@ -132,6 +181,7 @@ $('#pages').addEventListener('pointerdown', e => {
   const node = p.el.querySelector(`.annLayer [data-id="${a.id}"]:not(.agrp)`);
   if (h && h.dataset.h === 'rs') beginDrag(e, a, p, node, 'resize');
   else if (a.type === 'note' || a.type === 'image') beginDrag(e, a, p, node, 'move');
+  else if (a.type === 'shape') moveShape(e, a, p);
   else if (h && h.dataset.h === 'mv') beginDrag(e, a, p, node, 'move');
 });
 $('#pages').addEventListener('click', e => {
@@ -215,6 +265,8 @@ function bindLayer(p, layer){
     const pr = p.el.getBoundingClientRect();
     const fx = clamp((e.clientX - pr.left) / pr.width, 0, 1), fy = clamp((e.clientY - pr.top) / pr.height, 0, 1);
     if (S.tool === 'pen') return startPen(e, p, layer, pr);
+    if (S.tool === 'shape') return startShape(e, p, layer, pr);
+    if (S.tool === 'crop') return startCrop(e, p, layer, pr);
     if (S.tool === 'redact') return startRect(e, p, layer, pr);
     e.preventDefault();
     if (S.tool === 'note'){
@@ -224,11 +276,13 @@ function bindLayer(p, layer){
       const a = {id: uid(), type: 'text', page: p.num, x: Math.min(fx, .7), y: Math.min(fy, .95), w: .3, size: S.textSize, color: S.toolColor.text, text: '', fresh: true};
       addAnn(a); setTool('select'); selectAnn(a.id);
       setTimeout(() => { const d = document.querySelector(`.atext[data-id="${a.id}"]`); if (d && getAnn(a.id)) startTextEdit(d, a); }, 80);
-    } else if (S.tool === 'sign' || S.tool === 'stamp'){
-      const sg = S.tool === 'stamp' ? S.stamp : S.sig;
-      if (!sg){ if (S.tool === 'stamp') openStampModal(); else openSignModal(); return; }
-      const w = S.tool === 'stamp' ? Math.min(.4, sg.w || .24) : .25, h = w * pr.width / sg.ar / pr.height;
+    } else if (S.tool === 'sign' || S.tool === 'stamp' || S.tool === 'picture'){
+      const sg = S.tool === 'stamp' ? S.stamp : S.tool === 'picture' ? S.pic : S.sig;
+      if (!sg){ if (S.tool === 'stamp') openStampModal(); else if (S.tool === 'picture') pickImage(); else openSignModal(); return; }
+      let w = S.tool === 'stamp' ? Math.min(.4, sg.w || .24) : S.tool === 'picture' ? .4 : .25, h = w * pr.width / sg.ar / pr.height;
+      if (h > .6){ h = .6; w = h * pr.height * sg.ar / pr.width; }
       const a = {id: uid(), type: 'image', page: p.num, x: clamp(fx - w / 2, 0, 1 - w), y: clamp(fy - h / 2, 0, 1 - h), w, ar: sg.ar, data: sg.data};
+      if (S.tool === 'picture') a.kind = 'picture';
       addAnn(a); setTool('select'); selectAnn(a.id);
     }
   });
@@ -315,10 +369,13 @@ function setTool(t){
   if (t !== 'select') selectAnn(null);
   buildSwatches();
   if (t === 'pen') $('#sizeRange').value = S.penW;
+  if (t === 'shape') $('#sizeRange').value = S.shapeW;
+  if (t === 'crop' && prev !== 'crop') toast('Trascina un rettangolo sulla pagina: resterà solo quella parte.');
   if (t === 'text') $('#sizeRange').value = clamp((S.textSize - 8) / 2, 1, 12);
   if (MARKUP.includes(t)) markFromSelection();
   if (t === 'sign' && (!S.sig || prev === 'sign')) openSignModal();
   if (t === 'stamp' && (!S.stamp || prev === 'stamp')) openStampModal();
+  if (t === 'picture' && (!S.pic || prev === 'picture')) pickImage();
   if (t === 'redact' && prev !== 'redact') toast('Trascina sul testo da oscurare. Al salvataggio la pagina viene rasterizzata: il testo sotto sparisce davvero.');
   if (t === 'edittext' && prev !== 'edittext') toast('Clicca su una riga di testo per modificarla.');
 }
@@ -339,6 +396,8 @@ function buildSwatches(){
 $('#sizeRange').oninput = e => {
   const v = +e.target.value, a = S.sel && getAnn(S.sel);
   if (S.tool === 'pen') S.penW = v;
+  else if (S.tool === 'shape') S.shapeW = v;
+  else if (a && a.type === 'shape'){ snap(); a.width = v; buildAnnLayer(pageOf(a.page)); }
   else if (S.tool === 'text') S.textSize = 8 + 2 * v;
   else if (a && a.type === 'pen'){ snap(); a.width = v; buildAnnLayer(pageOf(a.page)); }
   else if (a && a.type === 'text'){ snap(); a.size = 8 + 2 * v; buildAnnLayer(pageOf(a.page)); }
@@ -351,12 +410,12 @@ $('#bFields').onclick = () => {
 };
 
 /* ---------- Elenco annotazioni (pannello Note) ---------- */
-const ICONS = {highlight: '🖍️ Evidenziazione', underline: 'U̲ Sottolineatura', strike: 'S̶ Barrato', note: '💬 Nota', pen: '✏️ Disegno', text: '🅣 Testo', image: '✍️ Firma / timbro', redact: '⬛ Oscuramento', cover: '⬜ Testo sostituito'};
+const ICONS = {highlight: '🖍️ Evidenziazione', underline: 'U̲ Sottolineatura', strike: 'S̶ Barrato', note: '💬 Nota', pen: '✏️ Disegno', text: '🅣 Testo', image: '✍️ Firma / timbro', shape: '▭ Forma', redact: '⬛ Oscuramento', cover: '⬜ Testo sostituito'};
 function refreshLists(){
   const box = $('#tab-annots'); box.innerHTML = '';
   if (!S.anns.length){ box.innerHTML = '<div class="empty">Nessuna annotazione. Usa gli strumenti nella barra per evidenziare, scrivere note, disegnare o firmare.</div>'; return; }
   [...S.anns].sort((a, b) => a.page - b.page).forEach(a => {
-    const d = el('div', 'annItem'); d.innerHTML = `${ICONS[a.type] || a.type}<small>Pagina ${a.page}${a.text ? ' · ' + esc(a.text.slice(0, 60)) : ''}</small>`;
+    const d = el('div', 'annItem'); d.innerHTML = `${a.kind === 'picture' ? '🖼️ Immagine' : (ICONS[a.type] || a.type)}<small>Pagina ${a.page}${a.text ? ' · ' + esc(a.text.slice(0, 60)) : ''}</small>`;
     d.onclick = () => { goToPage(a.page); setTool('select'); setTimeout(() => selectAnn(a.id), 150); };
     box.append(d);
   });

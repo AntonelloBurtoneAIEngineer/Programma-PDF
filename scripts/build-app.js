@@ -6,7 +6,7 @@ const sig = esbuild.buildSync({
   alias: {'pdf-lib': path.join(root, 'app/shim/pdflib.js')}, define: {global: 'window', 'process.env.NODE_ENV': '"production"'},
   absWorkingDir: root, logLevel: 'error'
 }).outputFiles[0].text;
-const files = ['a_core', 'b_ann', 'c_forms_sign', 'd_save_pages', 'e_view', 'f_tools'].map(f => rd(path.join(root, 'app', f + '.js'))).join('\n');
+const files = ['a_core', 'b_ann', 'c_forms_sign', 'd_save_pages', 'e_view', 'f_tools', 'g_more'].map(f => rd(path.join(root, 'app', f + '.js'))).join('\n');
 const parts = {
   '/*CSS*/': rd(path.join(root, 'app/app.css')),
   '/*WORKER*/': rd(nm('pdfjs-dist/build/pdf.worker.min.js')),
@@ -17,12 +17,14 @@ const parts = {
   '/*APP*/': files
 };
 let t = rd(path.join(root, 'app/template.html'));
+const version = require(path.join(root, 'package.json')).version;
 for (const [k, v] of Object.entries(parts)){
   if (k !== '/*CSS*/' && /<\/script/i.test(v)) throw new Error('</script dentro ' + k);
   const i = t.indexOf(k); if (i < 0) throw new Error('segnaposto mancante ' + k);
   t = t.slice(0, i) + v + t.slice(i + k.length);
 }
-t = t.split('�').join('\\uFFFD');
+t = t.split('\ufffd').join('\\uFFFD');
+t = t.replace(/APP_VERSION = '[^']*'/, `APP_VERSION = '${version}'`);
 fs.mkdirSync(path.join(root, 'src'), {recursive: true});
 fs.writeFileSync(path.join(root, 'src/index.html'), t);
 console.log('src/index.html', Math.round(t.length / 1024), 'KB');

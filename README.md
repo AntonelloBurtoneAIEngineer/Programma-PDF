@@ -5,8 +5,8 @@ Lyonel Burton, di Antonello Burtone, per Windows (e anche web): legge, cerca, an
 ## Ottenere l'.exe con GitHub Actions
 
 1. Crea un repository su GitHub e carica tutto il contenuto di questa cartella (compreso `package-lock.json` e la cartella nascosta `.github`).
-2. Vai nella scheda **Actions**: il workflow «Compila Lettore PDF per Windows» parte da solo a ogni push (oppure premi **Run workflow**).
-3. Al termine (circa 5-8 minuti) apri l'esecuzione e scarica l'artefatto **Lettore-PDF-Windows**: contiene
+2. Vai nella scheda **Actions**: il workflow «Compila Lyonel Burton per Windows» parte da solo a ogni push (oppure premi **Run workflow**).
+3. Al termine (circa 5-8 minuti) apri l'esecuzione e scarica l'artefatto **Lyonel-Burton-Windows**: contiene
    - `Lyonel-Burton-Setup-1.0.0.exe`: installer (sceglie la cartella, crea i collegamenti, associa i `.pdf`);
    - `Lyonel-Burton-Portable-1.0.0.exe`: versione portatile, senza installazione.
 4. Facoltativo: crea un tag `v1.0.1` e GitHub pubblicherà gli .exe nella sezione **Releases**.
@@ -29,3 +29,15 @@ Servono Node.js 20+ e npm.
 - `main.js`, `preload.js` finestra desktop (Electron)
 
 `src/index.html` è anche la versione web: si apre con un doppio clic nel browser (l'OCR funziona solo nella versione desktop).
+
+## Licenza
+
+Lyonel Burton è software libero distribuito con licenza MIT: vedi il file [LICENSE](LICENSE). © 2026 Antonello Burtone.
+
+## Pubblicare una nuova versione
+
+1. Nel repository vai su **Releases → Draft a new release**.
+2. In «Choose a tag» scrivi il nuovo numero, per esempio `v1.1.0`, e premi **Create new tag**.
+3. Premi **Publish release**: GitHub Actions compila gli `.exe` con quel numero di versione e li allega alla release.
+
+Gli utenti con una versione precedente ricevono un avviso all'avvio del programma.

@@ -71,18 +71,26 @@
         <button class="tb tool" data-tool="redact" title="Oscura in modo definitivo parti del documento">⬛ Oscura</button>
         <button class="tb tool" data-tool="edittext" title="Modifica una riga di testo esistente">✎ Modifica testo</button>
         <button class="tb tool" data-tool="stamp" title="Timbri e firme salvate">🔖 Timbri / firme</button>
+        <button class="tb tool" data-tool="shape" title="Rettangoli, cerchi, linee e frecce (Maiusc per forme regolari)">▭ Forme</button>
+        <select id="shapeKind" class="tb" title="Tipo di forma"><option value="rect">▭ Rettangolo</option><option value="ellipse">◯ Ellisse</option><option value="line">╱ Linea</option><option value="arrow">➜ Freccia</option></select>
+        <button class="tb tool" data-tool="crop" title="Ritaglia la pagina">✂️ Ritaglia</button>
+        <button class="tb tool" data-tool="picture" title="Inserisci un'immagine (anche con Ctrl+V o trascinandola sulla pagina)">🖼️ Immagine</button>
       </div>
       <div class="grp">
         <button class="tb" id="bTheme" title="Cambia aspetto delle pagine: normale, notte, seppia">🌙 Notte</button>
         <button class="tb" id="bSpread" title="Mostra due pagine affiancate" aria-pressed="false">📖 Due pagine</button>
         <button class="tb" id="bFull" title="Schermo intero (F11)">⛶</button>
         <button class="tb" id="bTts" title="Leggi ad alta voce">🔊 Leggi</button>
+        <button class="tb" id="bPres" title="Presentazione a schermo intero (F5)">▶️ Presenta</button>
       </div>
       <div class="grp">
         <button class="tb" id="bOcr" title="Rendi ricercabili i PDF scansionati (versione desktop)" disabled>🔍 OCR</button>
         <button class="tb" id="bCmp" title="Confronta con un altro PDF">🔀 Confronta</button>
         <button class="tb" id="bExp" title="Esporta immagini, testo e comprimi">📤 Esporta / comprimi</button>
         <button class="tb" id="bMark" title="Filigrana e numeri di pagina">💧 Filigrana / numeri</button>
+        <button class="tb" id="bImgPdf" title="Crea un PDF da una o più immagini">🖼️➜📄 Da immagini</button>
+        <button class="tb" id="bMeta" title="Titolo, autore, parole chiave">🏷️ Proprietà</button>
+        <button class="tb" id="bFindAll" title="Cerca in tutti i documenti aperti (Ctrl+Maiusc+F)">🔎 Cerca in tutti</button>
         <button class="tb" id="bCert" title="Firma digitale con certificato">🔏 Firma digitale</button>
       </div>
     </div>
@@ -108,6 +116,7 @@
           <p>Trascina qui un file PDF oppure aprilo dal tuo computer. Funziona nel browser: il documento non viene inviato a nessun server.</p>
           <div class="wbtns">
             <button class="tb primary lg" id="wOpen">📂 Apri un PDF</button>
+            <button class="tb lg" id="wImg">🖼️ Crea un PDF da immagini</button>
             <button class="tb lg" id="wDemo">✨ Prova con un modulo di esempio</button>
           </div>
           <ul class="feat">
