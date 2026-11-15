@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lettore PDF – leggi, annota, compila, firma, organizza</title>
+<style>
+/*CSS*/
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="row r1">
+      <div class="brand"><span class="logo">PDF</span><b>Lettore</b></div>
+      <div class="grp">
+        <button class="tb primary" id="bOpen" title="Apri un file PDF">📂 Apri</button>
+        <button class="tb" id="bSave" title="Salva il PDF con annotazioni e campi compilati" disabled>💾 Salva</button>
+        <button class="tb" id="bOrg" title="Unisci, dividi, ruota, riordina le pagine" disabled>🗂️ Pagine</button>
+        <input type="file" id="fileIn" accept="application/pdf,.pdf" hidden>
+      </div>
+      <div class="grp">
+        <button class="tb icon" id="bSide" title="Mostra/nascondi pannello laterale">☰</button>
+        <button class="tb icon" id="bPrev" title="Pagina precedente">◀</button>
+        <span class="pg"><input id="pageIn" type="number" min="1" value="1" aria-label="Numero pagina"> / <span id="pageTot">–</span></span>
+        <button class="tb icon" id="bNext" title="Pagina successiva">▶</button>
+      </div>
+      <div class="grp">
+        <button class="tb icon" id="bZoomOut" title="Riduci (Ctrl −)">−</button>
+        <select id="zoomSel" aria-label="Zoom">
+          <option value="width">Adatta larghezza</option>
+          <option value="page">Pagina intera</option>
+          <option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option>
+          <option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option><option value="3">300%</option>
+        </select>
+        <button class="tb icon" id="bZoomIn" title="Ingrandisci (Ctrl +)">+</button>
+      </div>
+      <div class="grp search">
+        <input id="searchIn" type="search" placeholder="Cerca nel testo…" aria-label="Cerca">
+        <button class="tb icon" id="sPrev" title="Risultato precedente">↑</button>
+        <button class="tb icon" id="sNext" title="Risultato successivo">↓</button>
+        <span id="sCount" class="muted"></span>
+      </div>
+    </div>
+    <div class="row r2" id="toolRow">
+      <div class="grp" id="tools">
+        <button class="tb tool active" data-tool="select" title="Seleziona e sposta (Esc)">🖱️ Seleziona</button>
+        <button class="tb tool" data-tool="highlight" title="Evidenzia il testo selezionato">🖍️ Evidenzia</button>
+        <button class="tb tool" data-tool="underline" title="Sottolinea il testo selezionato">U̲ Sottolinea</button>
+        <button class="tb tool" data-tool="strike" title="Barra il testo selezionato">S̶ Barra</button>
+        <button class="tb tool" data-tool="note" title="Aggiungi una nota">📝 Nota</button>
+        <button class="tb tool" data-tool="pen" title="Disegno a mano libera">✏️ Penna</button>
+        <button class="tb tool" data-tool="text" title="Aggiungi una casella di testo">🅣 Testo</button>
+        <button class="tb tool" data-tool="sign" title="Inserisci la tua firma">✍️ Firma</button>
+      </div>
+      <div class="grp">
+        <span class="swatches" id="swatches" aria-label="Colore"></span>
+        <label class="muted" title="Spessore penna / dimensione testo">Spess. <input type="range" id="sizeRange" min="1" max="12" value="3"></label>
+      </div>
+      <div class="grp">
+        <button class="tb" id="bUndo" title="Annulla (Ctrl Z)" disabled>↶</button>
+        <button class="tb" id="bRedo" title="Ripeti (Ctrl Y)" disabled>↷</button>
+        <button class="tb" id="bDel" title="Elimina l'elemento selezionato (Canc)" disabled>🗑️ Elimina</button>
+        <button class="tb" id="bFields" title="Evidenzia i campi compilabili" aria-pressed="true">🔷 Campi</button>
+      </div>
+    </div>
+    <div class="row r3" id="advRow">
+      <div class="grp">
+        <button class="tb tool" data-tool="redact" title="Oscura in modo definitivo parti del documento">⬛ Oscura</button>
+        <button class="tb tool" data-tool="edittext" title="Modifica una riga di testo esistente">✎ Modifica testo</button>
+        <button class="tb tool" data-tool="stamp" title="Timbri e firme salvate">🔖 Timbri / firme</button>
+      </div>
+      <div class="grp">
+        <button class="tb" id="bTheme" title="Cambia aspetto delle pagine: normale, notte, seppia">🌙 Notte</button>
+        <button class="tb" id="bSpread" title="Mostra due pagine affiancate" aria-pressed="false">📖 Due pagine</button>
+        <button class="tb" id="bFull" title="Schermo intero (F11)">⛶</button>
+        <button class="tb" id="bTts" title="Leggi ad alta voce">🔊 Leggi</button>
+      </div>
+      <div class="grp">
+        <button class="tb" id="bOcr" title="Rendi ricercabili i PDF scansionati (versione desktop)" disabled>🔍 OCR</button>
+        <button class="tb" id="bCmp" title="Confronta con un altro PDF">🔀 Confronta</button>
+        <button class="tb" id="bExp" title="Esporta immagini, testo e comprimi">📤 Esporta / comprimi</button>
+        <button class="tb" id="bMark" title="Filigrana e numeri di pagina">💧 Filigrana / numeri</button>
+        <button class="tb" id="bCert" title="Firma digitale con certificato">🔏 Firma digitale</button>
+      </div>
+    </div>
+  </header>
+  <div id="tabbar" hidden></div>
+
+  <div id="main">
+    <aside id="side">
+      <div class="tabs">
+        <button class="tab active" data-tab="thumbs">Pagine</button>
+        <button class="tab" data-tab="outline">Indice</button>
+        <button class="tab" data-tab="annots">Note</button>
+      </div>
+      <div id="tab-thumbs" class="tabbody"></div>
+      <div id="tab-outline" class="tabbody" hidden></div>
+      <div id="tab-annots" class="tabbody" hidden></div>
+    </aside>
+    <div id="viewer" tabindex="0">
+      <div id="welcome">
+        <div class="card">
+          <div class="big-icon">📄</div>
+          <h1>Lettore PDF</h1>
+          <p>Trascina qui un file PDF oppure aprilo dal tuo computer. Funziona nel browser: il documento non viene inviato a nessun server.</p>
+          <div class="wbtns">
+            <button class="tb primary lg" id="wOpen">📂 Apri un PDF</button>
+            <button class="tb lg" id="wDemo">✨ Prova con un modulo di esempio</button>
+          </div>
+          <ul class="feat">
+            <li>🔍 Leggi, cerca, zoom, indice e miniature</li>
+            <li>🖍️ Evidenzia, sottolinea, note, penna e testo</li>
+            <li>📝 Compila i moduli e inserisci la firma</li>
+            <li>🗂️ Unisci, dividi, ruota e riordina le pagine</li>
+          </ul>
+        </div>
+      </div>
+      <div id="pages"></div>
+    </div>
+  </div>
+</div>
+
+<div id="dropHint">Rilascia il PDF per aprirlo</div>
+<div id="toast" role="status"></div>
+
+<div id="modal" class="modal" hidden><div class="mbox" id="mbox"></div></div>
+<div id="notePop" hidden></div>
+
+<script type="text/plain" id="pdfWorkerSrc">
+/*WORKER*/
+</script>
+<script>
+/*PDFJS*/
+</script>
+<script>
+/*PDFLIB*/
+</script>
+<script>
+/*JSZIP*/
+</script>
+<script>
+/*SIGLIB*/
+</script>
+<script>
+/*APP*/
+</script>
+</body>
+</html>
