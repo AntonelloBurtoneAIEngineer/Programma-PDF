@@ -27,13 +27,14 @@ const pdfArgs = argv => argv.slice(app.isPackaged ? 1 : 2).filter(a => /\.pdf$/i
 function sendFile(file){
   try {
     const bytes = fs.readFileSync(file);
-    if (rendererReady && win) { win.webContents.send('open-file', path.basename(file), bytes); if (win.isMinimized()) win.restore(); win.focus(); }
+    if (rendererReady && win) { win.webContents.send('open-file', path.basename(file), bytes, path.resolve(file)); if (win.isMinimized()) win.restore(); win.focus(); }
     else pending.push(file);
   } catch (e) { dialog.showErrorBox('Lyonel Burton', 'Impossibile aprire il file:\n' + file + '\n' + e.message); }
 }
 async function openDialog(){
   const r = await dialog.showOpenDialog(win, {title: 'Apri PDF', properties: ['openFile', 'multiSelections'], filters: [{name: 'Documenti PDF', extensions: ['pdf']}]});
-  if (!r.canceled) r.filePaths.forEach(sendFile);
+  if (r.canceled) return [];
+  return r.filePaths.map(f => ({name: path.basename(f), path: f, bytes: fs.readFileSync(f)}));
 }
 
 function createWindow(){
@@ -54,16 +55,8 @@ function createWindow(){
 }
 
 function buildMenu(){
-  const t = [
-    {label: 'File', submenu: [
-      {label: 'Apri…', accelerator: 'CmdOrCtrl+O', click: openDialog}, {type: 'separator'}, {role: 'quit', label: 'Esci'}]},
-    {label: 'Modifica', submenu: [{role: 'copy', label: 'Copia'}, {role: 'paste', label: 'Incolla'}, {role: 'selectAll', label: 'Seleziona tutto'}]},
-    {label: 'Visualizza', submenu: [
-      {role: 'togglefullscreen', label: 'Schermo intero'}, {role: 'zoomIn', label: 'Ingrandisci interfaccia'}, {role: 'zoomOut', label: 'Riduci interfaccia'}, {role: 'resetZoom', label: 'Dimensione normale'},
-      {role: 'toggleDevTools', label: 'Strumenti sviluppatore'}]},
-    {label: '?', submenu: [{label: 'Controlla aggiornamenti…', click: () => checkUpdates(true)}, {label: 'Pagina del progetto su GitHub', click: () => shell.openExternal('https://github.com/' + REPO)}, {type: 'separator'}, {label: 'Informazioni', click: () => dialog.showMessageBox(win, {type: 'info', title: 'Informazioni', message: 'Lyonel Burton ' + app.getVersion(), detail: 'Autore: Antonello Burtone\n\nLegge, annota, compila, firma e organizza i PDF. I file restano sul tuo computer.\n\n© ' + new Date().getFullYear() + ' Antonello Burtone. Tutti i diritti riservati.'})}]}
-  ];
-  Menu.setApplicationMenu(Menu.buildFromTemplate(t));
+  // La barra dei menu è disegnata dall'interfaccia (File, Modifica, Visualizza…), uguale nella versione web.
+  Menu.setApplicationMenu(null);
 }
 
 app.setName('Lyonel Burton');
@@ -73,6 +66,19 @@ else {
   app.on('second-instance', (_e, argv) => { if (win){ if (win.isMinimized()) win.restore(); win.focus(); } pdfArgs(argv).forEach(sendFile); });
   app.on('open-file', (e, file) => { e.preventDefault(); sendFile(file); });
   ipcMain.on('renderer-ready', () => { rendererReady = true; while (pending.length) sendFile(pending.shift()); setTimeout(() => checkUpdates(false), 4000); });
+  ipcMain.handle('open-dialog', () => openDialog());
+  ipcMain.handle('write-file', async (_e, file, bytes) => {
+    if (typeof file !== 'string' || !/\.pdf$/i.test(file)) throw new Error('Percorso non valido');
+    const tmp = file + '.lbtmp'; await fs.promises.writeFile(tmp, Buffer.from(bytes)); await fs.promises.rename(tmp, file); return true;
+  });
+  ipcMain.handle('save-as', async (_e, def, bytes) => {
+    const r = await dialog.showSaveDialog(win, {title: 'Salva con nome', defaultPath: path.isAbsolute(String(def)) ? def : path.join(app.getPath('documents'), String(def || 'documento.pdf')), filters: [{name: 'Documento PDF', extensions: ['pdf']}]});
+    if (r.canceled || !r.filePath) return null;
+    let f = r.filePath; if (!/\.pdf$/i.test(f)) f += '.pdf';
+    await fs.promises.writeFile(f, Buffer.from(bytes)); return {path: f, name: path.basename(f)};
+  });
+  ipcMain.on('check-updates', () => checkUpdates(true));
+  ipcMain.on('quit', () => { if (win) win.close(); });
   ipcMain.on('open-external', (_e, url) => { if (/^https:\/\/github\.com\//i.test(String(url))) shell.openExternal(url); });
   app.whenReady().then(() => {
     protocol.handle('app', req => {
