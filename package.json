@@ -87,7 +87,7 @@
       "artifactName": "Lyonel-Burton-Setup-${version}.${ext}",
       "allowElevation": true,
       "deleteAppDataOnUninstall": false,
-      "license": "build/license.txt"
+      "license": ""LICENSE""
     },
     "portable": {
       "artifactName": "Lyonel-Burton-Portable-${version}.${ext}"
