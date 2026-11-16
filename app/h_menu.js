@@ -70,6 +70,7 @@ function menuDef(){
       SEP,
       ['💾 Salva', 'Ctrl+S', saveCmd, hasDoc],
       ['💾 Salva con nome…', 'Ctrl+Maiusc+S', () => saveAsCmd(false), hasDoc],
+      ['📝 Converti in Word (.docx)…', '', openWordExport, hasDoc],
       ['📤 Esporta / comprimi…', '', openExport, hasDoc],
       SEP,
       ['🏷️ Proprietà del documento…', 'Ctrl+D', openMeta, hasDoc],
@@ -153,6 +154,7 @@ function menuDef(){
     ]],
     ['Strumenti', [
       ['🔍 OCR – rendi ricercabile', '', openOcr, hasDoc],
+      ['📝 Converti in Word (.docx)…', '', openWordExport, hasDoc],
       ['🔀 Confronta con un altro PDF…', '', openCompare, hasDoc],
       ['📤 Esporta immagini / testo, comprimi…', '', openExport, hasDoc],
       ['🖼️ Crea PDF da immagini…', '', openImgPdf]
@@ -282,28 +284,38 @@ async function openPrintPreview(){
       <label><input type="checkbox" id="ppGray"> Scala di grigi</label>
       <p class="muted" id="ppInfo" style="font-size:12.5px"></p>
       <p class="muted" style="font-size:12px">Annotazioni, firme e campi compilati vengono stampati. Stampante e numero di copie si scelgono nella finestra successiva.</p>
-    </div><div class="ppgrid" id="ppGrid"></div></div>`, true);
+    </div><div class="ppview"><div class="ppnav"><button class="tb icon" id="ppPrev" title="Pagina precedente">◀</button><span id="ppPg"></span><button class="tb icon" id="ppNext" title="Pagina successiva">▶</button></div><div class="ppstage" id="ppStage"></div></div></div>`, true);
   let token = 0, closed = false;
   const cleanup = () => { closed = true; if (own) pdf.destroy(); };
   const sel = () => { const v = b.querySelector('input[name=ppr]:checked').value;
     if (v === 'cur') return [S.cur]; if (v === 'range') return parsePages(b.querySelector('#ppRange').value, pdf.numPages); return Array.from({length: pdf.numPages}, (_, i) => i + 1); };
-  const preview = async () => {
-    const pages = sel(), grid = b.querySelector('#ppGrid'), tok = ++token; grid.innerHTML = '';
-    if (!pages || !pages.length){ b.querySelector('#ppInfo').textContent = 'Indica le pagine così: 1-3,5'; return; }
-    b.querySelector('#ppInfo').textContent = `${pages.length} pagin${pages.length > 1 ? 'e' : 'a'} da stampare.`;
-    const gray = b.querySelector('#ppGray').checked;
-    for (const n of pages.slice(0, 60)){
-      if (closed || tok !== token) return;
-      const pg = await pdf.getPage(n), v1 = pg.getViewport({scale: 1}), cv = await renderCanvas(pdf, n, 170 / Math.max(v1.width, v1.height));
-      if (closed || tok !== token) return;
-      if (gray) cv.style.filter = 'grayscale(1)';
-      const f = el('figure'); f.append(cv); f.append(el('figcaption', null, 'Pagina ' + n)); grid.append(f);
-    }
-    if (pages.length > 60) grid.append(el('p', 'muted', `…e altre ${pages.length - 60} pagine.`));
+  let pv = 0, pvPages = [];
+  const showPv = async () => {
+    const stage = b.querySelector('#ppStage'), tok = ++token;
+    if (!pvPages.length){ stage.innerHTML = ''; b.querySelector('#ppPg').textContent = ''; return; }
+    pv = clamp(pv, 0, pvPages.length - 1); const n = pvPages[pv];
+    b.querySelector('#ppPg').textContent = `Pagina ${n} (${pv + 1} di ${pvPages.length})`;
+    b.querySelector('#ppPrev').disabled = pv === 0; b.querySelector('#ppNext').disabled = pv >= pvPages.length - 1;
+    const pg = await pdf.getPage(n), v1 = pg.getViewport({scale: 1}), dpr = window.devicePixelRatio || 1;
+    const k = Math.min((stage.clientWidth - 30) / v1.width, (stage.clientHeight - 30) / v1.height), cv = await renderCanvas(pdf, n, Math.max(.2, k) * dpr);
+    if (closed || tok !== token) return;
+    cv.style.width = (cv.width / dpr) + 'px'; cv.style.height = (cv.height / dpr) + 'px';
+    if (b.querySelector('#ppGray').checked) cv.style.filter = 'grayscale(1)';
+    stage.innerHTML = ''; stage.append(cv);
   };
+  const preview = () => {
+    const pages = sel();
+    if (!pages || !pages.length){ b.querySelector('#ppInfo').textContent = 'Indica le pagine così: 1-3,5'; pvPages = []; showPv(); return; }
+    b.querySelector('#ppInfo').textContent = `${pages.length} pagin${pages.length > 1 ? 'e' : 'a'} da stampare.`;
+    const curN = pvPages[pv]; pvPages = pages; pv = Math.max(0, pages.indexOf(curN)); showPv();
+  };
+  b.querySelector('#ppPrev').onclick = () => { pv--; showPv(); }; b.querySelector('#ppNext').onclick = () => { pv++; showPv(); };
+  b.querySelector('#ppStage').addEventListener('wheel', e => { if (Math.abs(e.deltaY) < 20) return; e.preventDefault(); pv += e.deltaY > 0 ? 1 : -1; showPv(); }, {passive: false});
+  b.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' && e.target.type === 'text') return; if (e.key === 'ArrowRight' || e.key === 'PageDown'){ pv++; showPv(); } else if (e.key === 'ArrowLeft' || e.key === 'PageUp'){ pv--; showPv(); } });
   b.querySelectorAll('input[name=ppr],#ppGray').forEach(x => x.onchange = preview);
   b.querySelector('#ppRange').oninput = debounce(() => { b.querySelector('input[value=range]').checked = true; preview(); }, 400);
-  b.querySelector('#ppX').onclick = () => { cleanup(); closeModal(); };
+  b.querySelector('#ppX').onclick = () => { cleanup(); closeModal(); window.removeEventListener('resize', onRs); };
+  const onRs = debounce(() => { if (!closed) showPv(); }, 150); window.addEventListener('resize', onRs);
   b.querySelector('#ppGo').onclick = async () => {
     const pages = sel(); if (!pages || !pages.length){ toast('Indica le pagine così: 1-3,5', true); return; }
     const dpi = +b.querySelector('#ppQ').value, gray = b.querySelector('#ppGray').checked, or = b.querySelector('#ppOr').value;
