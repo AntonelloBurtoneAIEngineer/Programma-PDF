@@ -370,6 +370,7 @@ function setTool(t){
   buildSwatches();
   if (t === 'pen') $('#sizeRange').value = S.penW;
   if (t === 'shape') $('#sizeRange').value = S.shapeW;
+  { const sk = $('#shapeKind'); if (sk){ if (t !== 'shape') sk.value = ''; else sk.value = S.shapeKind; sk.classList.toggle('active', t === 'shape'); } }
   if (t === 'crop' && prev !== 'crop') toast('Trascina un rettangolo sulla pagina: resterà solo quella parte.');
   if (t === 'text') $('#sizeRange').value = clamp((S.textSize - 8) / 2, 1, 12);
   if (MARKUP.includes(t)) markFromSelection();

@@ -400,4 +400,4 @@ async function printDoc(){
     window.print();
   } catch(e){ console.error(e); toast('Stampa non disponibile qui: ' + (e && e.message || e), true); }
 }
-$('#bPrint').onclick = printDoc;
+

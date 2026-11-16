@@ -3,7 +3,7 @@
    ESTENSIONI 3: forme (UI), ritaglio, PDF da immagini, proprietà,
    ricerca in tutti i documenti, presentazione
    ===================================================================== */
-$('#shapeKind').onchange = e => { S.shapeKind = e.target.value; if (S.tool !== 'shape') setTool('shape'); };
+$('#shapeKind').onchange = e => { if (!e.target.value) return; S.shapeKind = e.target.value; setTool('shape'); };
 
 /* ---------- Ritaglio pagine ---------- */
 function startCrop(e, p, layer, pr){

@@ -89,10 +89,13 @@ const SIG_COLORS = [['#111111', 'Nero'], ['#1b3f9c', 'Blu'], ['#7a1020', 'Bordea
 function openSignModal(after){
   let color = '#1b3f9c', mode = 'draw', ink = false;
   const b = showModal(`<h2>La tua firma</h2>
-    <p>Disegnala con il mouse o con il dito, oppure scrivi il nome. Resta solo in questa sessione, a meno che tu non la salvi da «Timbri / firme».</p>
-    <div class="sigtabs"><button class="tb on" id="stD">✍️ Disegna</button><button class="tb" id="stT">⌨️ Scrivi</button></div>
+    <p>Disegnala con il mouse o con il dito, scrivi il nome oppure carica l'immagine della tua firma. Resta solo in questa sessione, a meno che tu non la salvi da «Timbri / firme».</p>
+    <div class="sigtabs"><button class="tb on" id="stD">✍️ Disegna</button><button class="tb" id="stT">⌨️ Scrivi</button><button class="tb" id="stI">🖼️ Carica immagine</button></div>
     <div id="sigDraw"><canvas id="sigCanvas" width="1000" height="360"></canvas></div>
     <div id="sigType" hidden><input class="sigtext" id="sigText" placeholder="Scrivi il tuo nome"></div>
+    <div id="sigImg" hidden><div class="sigimgbox" id="sigImgBox"><span class="muted">Nessuna immagine: premi «Scegli immagine…» (PNG, JPG…). Va bene anche una foto della firma su carta bianca.</span></div>
+      <div class="mrow" style="justify-content:flex-start;margin-top:6px"><button class="tb" id="sigPick">📂 Scegli immagine…</button>
+      <label style="font-size:13px"><input type="checkbox" id="sigWhite" checked> Rendi trasparente lo sfondo bianco</label></div></div>
     <div class="sigcolors">Colore: <span class="swatches" id="sigSw"></span></div>
     <div class="mrow"><button class="tb" id="sigClr">Cancella</button><button class="tb" id="sigNo">Annulla</button><button class="tb primary" id="sigOk">Usa firma</button></div>`);
   const cv = b.querySelector('#sigCanvas'), ctx = cv.getContext('2d');
@@ -108,13 +111,33 @@ function openSignModal(after){
     ctx.beginPath(); ctx.moveTo(last[0], last[1]); ctx.lineTo(p[0], p[1]); ctx.stroke(); last = p;
   };
   cv.onpointerup = cv.onpointercancel = () => { drawing = false; };
+  let imgCanvas = null, imgSrc = null;
+  const buildImg = () => {
+    if (!imgSrc) return; const M = 1400, k = Math.min(1, M / Math.max(imgSrc.naturalWidth, imgSrc.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(imgSrc.naturalWidth * k)); c.height = Math.max(1, Math.round(imgSrc.naturalHeight * k));
+    const x = c.getContext('2d'); x.drawImage(imgSrc, 0, 0, c.width, c.height);
+    if (b.querySelector('#sigWhite').checked){
+      const id = x.getImageData(0, 0, c.width, c.height), d = id.data;
+      for (let i = 0; i < d.length; i += 4){ const l = (d[i] + d[i + 1] + d[i + 2]) / 3; if (l > 215) d[i + 3] = 0; else if (l > 160) d[i + 3] = Math.round(d[i + 3] * (215 - l) / 55); }
+      x.putImageData(id, 0, 0);
+    }
+    imgCanvas = c; const box = b.querySelector('#sigImgBox'); box.innerHTML = ''; const pv = new Image(); pv.src = c.toDataURL('image/png'); box.append(pv);
+  };
+  b.querySelector('#sigPick').onclick = () => {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/gif,image/webp,image/bmp,image/svg+xml';
+    inp.onchange = () => { const f = inp.files[0]; if (!f) return; const url = URL.createObjectURL(f), im = new Image();
+      im.onload = () => { imgSrc = im; buildImg(); URL.revokeObjectURL(url); }; im.onerror = () => toast('Immagine non leggibile.', true); im.src = url; };
+    inp.click();
+  };
+  b.querySelector('#sigWhite').onchange = buildImg;
   const setMode = m => {
-    mode = m; b.querySelector('#stD').classList.toggle('on', m === 'draw'); b.querySelector('#stT').classList.toggle('on', m === 'type');
-    b.querySelector('#sigDraw').hidden = m !== 'draw'; b.querySelector('#sigType').hidden = m !== 'type';
+    mode = m; b.querySelector('#stD').classList.toggle('on', m === 'draw'); b.querySelector('#stT').classList.toggle('on', m === 'type'); b.querySelector('#stI').classList.toggle('on', m === 'img');
+    b.querySelector('#sigDraw').hidden = m !== 'draw'; b.querySelector('#sigType').hidden = m !== 'type'; b.querySelector('#sigImg').hidden = m !== 'img';
+    b.querySelector('.sigcolors').style.display = m === 'img' ? 'none' : '';
     if (m === 'type') b.querySelector('#sigText').focus();
   };
-  b.querySelector('#stD').onclick = () => setMode('draw'); b.querySelector('#stT').onclick = () => setMode('type');
-  b.querySelector('#sigClr').onclick = () => { ctx.clearRect(0, 0, cv.width, cv.height); ink = false; b.querySelector('#sigText').value = ''; };
+  b.querySelector('#stD').onclick = () => setMode('draw'); b.querySelector('#stT').onclick = () => setMode('type'); b.querySelector('#stI').onclick = () => setMode('img');
+  b.querySelector('#sigClr').onclick = () => { ctx.clearRect(0, 0, cv.width, cv.height); ink = false; b.querySelector('#sigText').value = ''; imgCanvas = imgSrc = null; b.querySelector('#sigImgBox').innerHTML = '<span class="muted">Nessuna immagine.</span>'; };
   b.querySelector('#sigNo').onclick = () => { closeModal(); if (!S.sig && S.tool === 'sign') setTool('select'); };
   b.querySelector('#sigOk').onclick = () => {
     let src = cv;
@@ -124,7 +147,8 @@ function openSignModal(after){
       const font = 'italic 150px "Segoe Script","Brush Script MT","Snell Roundhand","Lucida Handwriting",cursive';
       c2.font = font; const w = Math.ceil(c2.measureText(txt).width) + 60; src.width = Math.min(w, 3000); src.height = 260;
       c2.font = font; c2.fillStyle = color; c2.textBaseline = 'middle'; c2.fillText(txt, 30, 140);
-    } else if (!ink){ toast('Disegna prima la firma.', true); return; }
+    } else if (mode === 'img'){ if (!imgCanvas){ toast('Scegli prima un\'immagine.', true); return; } src = imgCanvas; }
+    else if (!ink){ toast('Disegna prima la firma.', true); return; }
     const t = trimCanvas(src); if (!t){ toast('Firma vuota.', true); return; }
     S.sig = t; closeModal();
     if (after) after(); else toast('Firma pronta: clicca sulla pagina per inserirla.');

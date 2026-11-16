@@ -45,7 +45,7 @@ function updTitle(){ if (S.doc) document.title = (isDirty() ? '● ' : '') + S.n
 setInterval(updTitle, 1500);
 function snapTab(){
   const t = TABS.find(x => x.id === ACTIVE); if (!t || !S.doc) return;
-  Object.assign(t, {dirty: isDirty(), clean: S.clean, bytes: S.bytes, name: S.name, anns: S.anns, hist: S.hist, redo: S.redo, fields: S.fields, touched: [...S.touched],
+  Object.assign(t, {dirty: isDirty(), clean: S.clean, path: S.path || null, bytes: S.bytes, name: S.name, anns: S.anns, hist: S.hist, redo: S.redo, fields: S.fields, touched: [...S.touched],
     docUndo: S.docUndo, cur: S.cur, zoomMode: S.zoomMode, scale: S.scale, encrypted: S.encrypted, pw: S.encrypted ? LAST_PW : null});
   savePos();
 }
@@ -54,8 +54,9 @@ loadBytes = async function(bytes, name, keep){
   const ok = await _loadBytes(bytes, name, keep);
   if (!ok) return ok;
   if (!SWITCHING){
-    if (!keep){ const t = {id: uid(), name: S.name}; TABS.push(t); ACTIVE = t.id; restorePos(); markClean(); }
+    if (!keep){ const t = {id: uid(), name: S.name, path: NEXT_PATH}; S.path = NEXT_PATH; TABS.push(t); ACTIVE = t.id; restorePos(); markClean(); }
     else { const t = TABS.find(x => x.id === ACTIVE); if (t) t.name = S.name; }
+    NEXT_PATH = null;
   }
   renderTabs(); return ok;
 };
@@ -76,7 +77,7 @@ async function switchTab(id){
   try {
     S.anns = t.anns; S.hist = t.hist; S.redo = t.redo; S.fields = t.fields; S.touched = new Set(t.touched); S.docUndo = t.docUndo;
     S.zoomMode = t.zoomMode; S.scale = t.scale; PW_HINT = t.pw; ACTIVE = id;
-    await _loadBytes(t.bytes, t.name, true); S.encrypted = t.encrypted; S.clean = t.clean;
+    await _loadBytes(t.bytes, t.name, true); S.encrypted = t.encrypted; S.clean = t.clean; S.path = t.path || null;
     goToPage(t.cur || 1); updUndo();
   } finally { SWITCHING = false; renderTabs(); }
 }
@@ -93,7 +94,7 @@ async function closeTab(id){
 }
 function resetViewer(){
   try { S.doc && S.doc.destroy(); } catch(e){}
-  S.doc = null; S.bytes = null; S.n = 0; S.pages = []; S.anns = []; S.hist = []; S.redo = []; S.fields = {}; S.touched = new Set(); S.docUndo = []; S.sel = null;
+  S.doc = null; S.bytes = null; S.path = null; S.n = 0; S.pages = []; S.anns = []; S.hist = []; S.redo = []; S.fields = {}; S.touched = new Set(); S.docUndo = []; S.sel = null;
   $('#pages').innerHTML = ''; $('#tab-thumbs').innerHTML = ''; $('#welcome').style.display = ''; $('#pageTot').textContent = '–';
   ['#bSave', '#bOrg'].forEach(s => $(s).disabled = true); document.title = 'Lyonel Burton'; updUndo(); refreshLists();
 }
@@ -233,8 +234,8 @@ $('#viewer').addEventListener('wheel', e => {
 }, {passive: false});
 document.addEventListener('keydown', e => {
   if (!(e.ctrlKey || e.metaKey)) return; const k = e.key.toLowerCase();
-  if (k === 'p'){ e.preventDefault(); printDoc(); }
-  else if (k === 'o' && !DESKTOP){ e.preventDefault(); $('#fileIn').click(); }
+  if (k === 'p'){ e.preventDefault(); openPrintPreview(); }
+  else if (k === 'o'){ e.preventDefault(); openCmd(); }
 });
 
 /* ---------- Inserimento immagini ---------- */
@@ -304,6 +305,6 @@ $('#bAbout').onclick = () => {
   setTheme(LS.get('theme', 0) || 0); if (LS.get('spread', false)) setSpread(true, true);
   $('#bOcr').disabled = false;
   document.addEventListener('keydown', e => { if (e.key === 'F11' && !DESKTOP){ e.preventDefault(); $('#bFull').click(); } });
-  if (window.desktop && window.desktop.onOpen) window.desktop.onOpen((name, bytes) => loadBytes(new Uint8Array(bytes), name));
+  if (window.desktop && window.desktop.onOpen) window.desktop.onOpen((name, bytes, path) => { NEXT_PATH = path || null; loadBytes(new Uint8Array(bytes), name); });
   if (window.desktop && window.desktop.ready) window.desktop.ready();
 })();

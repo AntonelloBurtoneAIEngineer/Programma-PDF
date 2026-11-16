@@ -85,10 +85,11 @@ async function openFile(file){
   if (!file) return;
   if (!/pdf$/i.test(file.type) && !/\.pdf$/i.test(file.name)){ toast('Seleziona un file PDF.', true); return; }
   const buf = new Uint8Array(await file.arrayBuffer());
+  try { NEXT_PATH = (window.desktop && window.desktop.pathFor) ? (window.desktop.pathFor(file) || null) : null; } catch(e){ NEXT_PATH = null; }
   await loadBytes(buf, file.name);
 }
 
-let PW_HINT = null, LAST_PW = null;
+let PW_HINT = null, LAST_PW = null, NEXT_PATH = null;
 async function loadBytes(bytes, name, keep){
   const task = openPdf(bytes);
   let pwTried = false;

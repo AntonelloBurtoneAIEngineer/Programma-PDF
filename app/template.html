@@ -11,10 +11,11 @@
 <body>
 <div id="app">
   <header id="top">
+    <nav id="menubar" role="menubar"></nav>
     <div class="row r1">
       <div class="brand"><span class="logo">LB</span><b>Lyonel Burton</b></div>
       <div class="grp">
-        <button class="tb primary" id="bOpen" title="Apri un file PDF">📂 Apri</button>
+        <button class="tb" id="bOpen" title="Apri un file PDF (Ctrl+O)">📂 Apri</button>
         <button class="tb" id="bSave" title="Salva il PDF con annotazioni e campi compilati" disabled>💾 Salva</button>
         <button class="tb" id="bOrg" title="Unisci, dividi, ruota, riordina le pagine" disabled>🗂️ Pagine</button>
         <button class="tb" id="bPrint" title="Stampa (Ctrl P)">🖨️ Stampa</button>
@@ -71,8 +72,7 @@
         <button class="tb tool" data-tool="redact" title="Oscura in modo definitivo parti del documento">⬛ Oscura</button>
         <button class="tb tool" data-tool="edittext" title="Modifica una riga di testo esistente">✎ Modifica testo</button>
         <button class="tb tool" data-tool="stamp" title="Timbri e firme salvate">🔖 Timbri / firme</button>
-        <button class="tb tool" data-tool="shape" title="Rettangoli, cerchi, linee e frecce (Maiusc per forme regolari)">▭ Forme</button>
-        <select id="shapeKind" class="tb" title="Tipo di forma"><option value="rect">▭ Rettangolo</option><option value="ellipse">◯ Ellisse</option><option value="line">╱ Linea</option><option value="arrow">➜ Freccia</option></select>
+        <select id="shapeKind" class="tb" title="Disegna rettangoli, ellissi, linee e frecce (Maiusc per forme regolari)"><option value="" hidden selected>▭ Forme ▾</option><option value="rect">▭ Rettangolo</option><option value="ellipse">◯ Ellisse</option><option value="line">╱ Linea</option><option value="arrow">➜ Freccia</option></select>
         <button class="tb tool" data-tool="crop" title="Ritaglia la pagina">✂️ Ritaglia</button>
         <button class="tb tool" data-tool="picture" title="Inserisci un'immagine (anche con Ctrl+V o trascinandola sulla pagina)">🖼️ Immagine</button>
       </div>
@@ -108,6 +108,7 @@
       <div id="tab-outline" class="tabbody" hidden></div>
       <div id="tab-annots" class="tabbody" hidden></div>
     </aside>
+    <div id="sideGrip" title="Trascina per allargare o restringere il pannello"></div>
     <div id="viewer" tabindex="0">
       <div id="welcome">
         <div class="card">
@@ -137,6 +138,7 @@
 
 <div id="modal" class="modal" hidden><div class="mbox" id="mbox"></div></div>
 <div id="notePop" hidden></div>
+<div id="ctxMenu" class="dmenu" hidden></div>
 
 <script type="text/plain" id="pdfWorkerSrc">
 /*WORKER*/

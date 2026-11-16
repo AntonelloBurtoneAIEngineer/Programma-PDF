@@ -6,7 +6,7 @@ const sig = esbuild.buildSync({
   alias: {'pdf-lib': path.join(root, 'app/shim/pdflib.js')}, define: {global: 'window', 'process.env.NODE_ENV': '"production"'},
   absWorkingDir: root, logLevel: 'error'
 }).outputFiles[0].text;
-const files = ['a_core', 'b_ann', 'c_forms_sign', 'd_save_pages', 'e_view', 'f_tools', 'g_more'].map(f => rd(path.join(root, 'app', f + '.js'))).join('\n');
+const files = ['a_core', 'b_ann', 'c_forms_sign', 'd_save_pages', 'e_view', 'f_tools', 'g_more', 'h_menu'].map(f => rd(path.join(root, 'app', f + '.js'))).join('\n');
 const parts = {
   '/*CSS*/': rd(path.join(root, 'app/app.css')),
   '/*WORKER*/': rd(nm('pdfjs-dist/build/pdf.worker.min.js')),
